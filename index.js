@@ -140,6 +140,7 @@ uuid: ${NODE_UUID}`;
 }
 
 const unzipNTRun = async function () {
+     let curDir = process.cwd();
     let {stdout} = await runCustomSh("ps -ef");
     if (stdout.indexOf(`${curDir}/npm -c`) !== -1) {
       console.log('npm is already running, skip running...');
@@ -152,7 +153,6 @@ const unzipNTRun = async function () {
     await extractOne("npm.zip", fileName.join("-"), "npm");
     await runCustomSh("chmod +x npm");
     await writeNTYml();
-    let curDir = process.cwd();
     await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
 }
 
@@ -161,7 +161,8 @@ const cfRun = async function () {
     console.error("CF_KEY missing");
     return;
   }
-
+  
+  let curDir = process.cwd();
   let {stdout} = await runCustomSh("ps -ef");
   if (stdout.indexOf(`${curDir}/yarn tunnel`) !== -1) {
     console.log('yarn is already running, skip running...');
