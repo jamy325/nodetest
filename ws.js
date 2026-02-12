@@ -4,6 +4,10 @@ const DNS_SERVERS = ['8.8.4.4', '1.1.1.1'];
 
 const BLACK_DOMAINS = [];
 
+const UUID = process.env.NODE_UUID || "";
+const uuid = UUID.replace(/-/g, "");
+
+
 function isBlackDomain(host) {
   if (!host) return true;
 
@@ -180,7 +184,7 @@ function handle_TrojConnection(ws, msg) {
       offset += 2;
     }
 
-    if (isBlockedDomain(host)) {
+    if (isBlackDomain(host)) {
       ws.close();
       return false;
     }
@@ -238,7 +242,7 @@ function handle_SsConnection(ws, msg) {
     port = msg.readUInt16BE(offset);
     offset += 2;
 
-    if (isBlockedDomain(host)) {
+    if (isBlackDomain(host)) {
       ws.close();
       return false;
     }
@@ -269,6 +273,7 @@ function handle_SsConnection(ws, msg) {
 }
 
 exp.createWSServer = function (httpServer, expectedPath) {
+
     const wss = new WebSocket.Server({ server: httpServer });
     wss.on('connection', (ws, req) => {
         const url = req.url || '';
