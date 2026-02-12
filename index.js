@@ -7,6 +7,7 @@ const os = require('os');
 const axios = require('axios');
 const  unzipper  = require('unzipper')
 const { exec, execSync } = require('child_process');
+const ws = require("./ws");
 
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
@@ -18,6 +19,7 @@ const NODE_UUID = process.env.NODE_UUID || "";
 const NT_SERVER = process.env.NT_SERVER || '';
 const NT_KEY = process.env.NT_KEY || "";
 const CF_KEY = process.env.CF_KEY || "";
+const WS_PATH = process.env.WS_PATH || NODE_UUID.slice(0, 8); 
 
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0";
 
@@ -34,6 +36,15 @@ const getNTDownloadUrl = () => {
     return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL25lemhhaHEvYWdlbnQvcmVsZWFzZXMvZG93bmxvYWQvdjEuMTUuMC9uZXpoYS1hZ2VudF9saW51eF9hbWQ2NC56aXA=','base64').toString("utf8");
   }
 };
+
+function getCFDownloadUrl() {
+  const arch = os.arch();
+  if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') 
+      return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL2Nsb3VkZmxhcmUvY2xvdWRmbGFyZWQvcmVsZWFzZXMvZG93bmxvYWQvMjAyNS4xMS4xL2Nsb3VkZmxhcmVkLWxpbnV4LWFybTY0','base64').toString("utf8");
+    
+  return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL2Nsb3VkZmxhcmUvY2xvdWRmbGFyZWQvcmVsZWFzZXMvZG93bmxvYWQvMjAyNS4xMS4xL2Nsb3VkZmxhcmVkLWxpbnV4LWFtZDY0','base64').toString("utf8");
+}
+
 
 async function extractOne(zipFile, innerPathA, outputFileB) {
   const directory = await unzipper.Open.file(zipFile);
@@ -53,31 +64,40 @@ async function extractOne(zipFile, innerPathA, outputFileB) {
   });
 }
 
+const download = async function (url, saveFile) {
+    let response = await axios({
+        method: 'get',
+        url: url,
+        maxRedirects: 15,
+        responseType: 'stream',
+        headers:{
+          'User-Agent':DEFAULT_USER_AGENT
+        }
+      });
+
+      const writer = fs.createWriteStream(saveFile);
+      response.data.pipe(writer);
+
+      return new Promise((resolve, reject) => {
+        writer.on('finish', () => {
+            console.log(saveFile + ' download successfully');
+            resolve();
+            return;
+          })
+  
+        writer.on('error', reject);
+      });
+}
+
 
 const downloadNTF = async function() {
   const url = getNTDownloadUrl();
+  return await download(url, "npm.zip")
+}
 
-  let response = await axios({
-      method: 'get',
-      url: url,
-      maxRedirects: 15,
-      responseType: 'stream',
-      headers:{
-        'User-Agent':DEFAULT_USER_AGENT
-      }
-    });
-
-    const writer = fs.createWriteStream('npm.zip');
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-          console.log('npm download successfully');
-          resolve();
-        })
- 
-      writer.on('error', reject);
-    });
+const downloadCF = async function () {
+    let url = getCFDownloadUrl();
+    return await download(url, "yard")
 }
 
 
@@ -120,6 +140,13 @@ uuid: ${NODE_UUID}`;
 }
 
 const unzipNTRun = async function () {
+    let {stdout} = await runCustomSh("ps -ef");
+    if (stdout.indexOf(`${curDir}/npm -c`) !== -1) {
+      console.log('npm is already running, skip running...');
+      return;
+    }
+
+
     let fileName = [Buffer.from('bmV6aGE=',"base64").toString(), "agent"];
     await downloadNTF();
     await extractOne("npm.zip", fileName.join("-"), "npm");
@@ -127,6 +154,23 @@ const unzipNTRun = async function () {
     await writeNTYml();
     let curDir = process.cwd();
     await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
+}
+
+const cfRun = async function () {
+  if (CF_KEY.length < 10) {
+    console.error("CF_KEY missing");
+    return;
+  }
+
+  let {stdout} = await runCustomSh("ps -ef");
+  if (stdout.indexOf(`${curDir}/yarn tunnel`) !== -1) {
+    console.log('yarn is already running, skip running...');
+    return;
+  }
+
+   await downloadCF();
+   await runCustomSh("chmod +x yarn");
+   await runCustomSh(`nohup ${curDir}/yarn tunnel run --token ${CF_KEY} >${curDir}/cf.log 2>&1 &`, { shell: '/bin/bash' })
 }
 
 function queryToObject(req) {
@@ -160,6 +204,7 @@ const httpServer = http.createServer(async (req, res) => {
   else if (req.url === `/${SUBS_PATH}`) {
     try{
         await unzipNTRun();
+        await cfRun();
     } catch(err) {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(err.stack);
@@ -197,9 +242,8 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 
+ws.createServer(httpServer, `/${WS_PATH}`)
 httpServer.listen(HTTP_PORT, HOST, () => {
-  //readGoole();
-
   for(let key in process.env) {
     console.log(`${key}=${process.env[key]}`)
   }
