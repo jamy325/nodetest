@@ -10,7 +10,6 @@ const crypto = require('crypto');
 const { Buffer } = require('buffer');
 const { exec, execSync } = require('child_process');
 const  unzipper  = require('unzipper')
-const { HttpsProxyAgent }  = require('https-proxy-agent');
 
 const { WebSocket, createWebSocketStream } = require('ws');
 
@@ -25,8 +24,8 @@ const SUBS_PATH = process.env.SUBS_PATH || 'sub';
 const NODE_NAME = process.env.NODE_NAME || '';
 const HTTP_PORT = process.env.HTTP_PORT || 3000;
 const CF_KEY = process.env.CF_KEY || '';
-const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
-const httpsAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+
+const httpsAgent = undefined;
 
 
 const SB_IP_API = 'https://api-ipv4.ip.sb';
