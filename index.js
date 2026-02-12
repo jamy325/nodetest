@@ -131,7 +131,7 @@ const unzipNTRun = async function () {
     await runCustomSh("chmod +x npm");
     await writeNTYml();
     let curDir = process.cwd();
-    await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
+    await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
 }
 
 function queryToObject(req) {
