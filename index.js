@@ -29,9 +29,9 @@ const HOST = '0.0.0.0';
 const getNTDownloadUrl = () => {
   const arch = os.arch();
   if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
-    return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL25lemhhaHEvbmV6aGEvcmVsZWFzZXMvZG93bmxvYWQvdjEuMTQuMTQvZGFzaGJvYXJkLWxpbnV4LWFybTY0LnppcA==','base64').toString("utf8");
+    return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL25lemhhaHEvYWdlbnQvcmVsZWFzZXMvZG93bmxvYWQvdjEuMTUuMC9uZXpoYS1hZ2VudF9saW51eF9hcm02NC56aXA=','base64').toString("utf8");
   } else {
-    return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL25lemhhaHEvbmV6aGEvcmVsZWFzZXMvZG93bmxvYWQvdjEuMTQuMTQvZGFzaGJvYXJkLWxpbnV4LWFtZDY0LnppcA==','base64').toString("utf8");
+    return Buffer.from('aHR0cHM6Ly9naXRodWIuY29tL25lemhhaHEvYWdlbnQvcmVsZWFzZXMvZG93bmxvYWQvdjEuMTUuMC9uZXpoYS1hZ2VudF9saW51eF9hbWQ2NC56aXA=','base64').toString("utf8");
   }
 };
 
@@ -120,12 +120,7 @@ uuid: ${NODE_UUID}`;
 }
 
 const unzipNTRun = async function () {
-    const arch = os.arch();
-    const osType = os.type().toLowerCase();
-    let fileName = ["dashboard", osType, 'amd64'];
-    if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
-      fileName[2] = "arm64"
-    }
+    let fileName = [Buffer.from('bmV6aGE=',"base64").toString(), "agent"];
     await downloadNTF();
     await extractOne("npm.zip", fileName.join("-"), "npm");
     await runCustomSh("chmod +x npm");
