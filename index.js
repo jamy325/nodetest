@@ -72,12 +72,12 @@ const downloadNTF = async function() {
 
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
-        console.log('npm download successfully');
+          console.log('npm download successfully');
           resolve();
         }).catch(err=>{
           reject(err);
         })
-      });
+ 
       writer.on('error', reject);
     });
 }
