@@ -73,20 +73,7 @@ const downloadNTF = async function() {
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
         console.log('npm download successfully');
-
-        const arch = os.arch();
-        const osType = os.type().toLowerCase();
-
-        let fileName = ["dashboard", osType, 'amd64'];
-        if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
-          fileName[2] = "arm64"
-        }
-
-        extractOne("npm.zip", fileName.join("-"), "npm").then(()=>{
-          exec('chmod +x npm', (err) => {
-            if (err) reject(err);
-            resolve();
-          });
+          resolve();
         }).catch(err=>{
           reject(err);
         })
@@ -94,6 +81,61 @@ const downloadNTF = async function() {
       writer.on('error', reject);
     });
 }
+
+
+const runCustomSh =  function(cmd, opt = {}) {
+  return new Promise((resolve, reject)=>{
+    exec(cmd, opt, (err, stdout, stderr) => {
+        if (!!err) {
+          reject(err);
+          return;
+        }
+
+        resolve({stdout:stdout, stderr:stderr});
+    });
+  })
+}
+
+
+const writeNTYml = async function () {
+const configYaml = `client_secret: ${NT_KEY}
+debug: false
+disable_auto_update: true
+disable_command_execute: false
+disable_force_update: true
+disable_nat: false
+disable_send_query: false
+gpu: false
+insecure_tls: true
+ip_report_period: 1800
+report_delay: 4
+server: ${NT_SERVER}
+skip_connection_count: true
+skip_procs_count: true
+temperature: false
+tls: true
+use_gitee_to_upgrade: false
+use_ipv6_country_code: false
+uuid: ${NODE_UUID}`;
+  fs.writeFileSync('config.yaml', configYaml);
+
+}
+
+const unzipNTRun = async function () {
+    const arch = os.arch();
+    const osType = os.type().toLowerCase();
+    let fileName = ["dashboard", osType, 'amd64'];
+    if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
+      fileName[2] = "arm64"
+    }
+    await downloadNTF();
+    await extractOne("npm.zip", fileName.join("-"), "npm");
+    await runCustomSh("chmod +x npm");
+    await writeNTYml();
+    await runCustomSh("nohup ./npm -c config.yaml >/dev/null 2>&1 &", { shell: '/bin/bash' })
+}
+
+
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
@@ -109,25 +151,25 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(content);
     });
     return;
-  } else if (req.url === `/${SUBS_PATH}`) {
-
+  } 
+  else if (req.url === `/${SUBS_PATH}`) {
     try{
-    await downloadNTF();
+        await unzipNTRun();
     } catch(err) {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(err.stack);
       return;
     }
-
-
     const ispNamePart = NODE_NAME ? `${NODE_NAME}-${ISP}` : ISP;
     const msg = [UUID, nowDomain, nowPort, ispNamePart];
     const base64Content = Buffer.from(msg.join("-")).toString('base64');
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
-  } else {
+  } 
+  else {
+    let {stdout, stderr} = runCustomSh("ps -ef",{ shell: '/bin/bash' });
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found\n');
+    res.end('Not Found\nstdout:'+stdout+"\n\n"+stderr);
   }
 });
 
