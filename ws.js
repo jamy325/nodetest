@@ -200,7 +200,7 @@ function handle_TrojConnection(ws, msg) {
     }
 
     const duplex = createWebSocketStream(ws);
-    resolveHost(host)
+    resolveDNSHost(host)
       .then(resolvedIP => {
         net.connect({ host: resolvedIP, port }, function () {
           if (offset < msg.length) {
@@ -257,7 +257,7 @@ function handle_SsConnection(ws, msg) {
       return false;
     }
     const duplex = createWebSocketStream(ws);
-    resolveHost(host)
+    resolveDNSHost(host)
       .then(resolvedIP => {
         net.connect({ host: resolvedIP, port }, function () {
           if (offset < msg.length) {
