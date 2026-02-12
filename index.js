@@ -74,8 +74,6 @@ const downloadNTF = async function() {
       writer.on('finish', () => {
           console.log('npm download successfully');
           resolve();
-        }).catch(err=>{
-          reject(err);
         })
  
       writer.on('error', reject);
