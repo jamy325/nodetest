@@ -43,9 +43,6 @@ const downloadNTF = async function() {
       url: url,
       maxRedirects: 15,
       responseType: 'stream',
-      validateStatus: () => true, // 
-      httpsAgent,
-      proxy:false,
       headers:{
         'User-Agent':DEFAULT_USER_AGENT
       }
@@ -95,7 +92,7 @@ const httpServer = http.createServer(async (req, res) => {
   } else if (req.url === `/${SUBS_PATH}`) {
 
     await downloadNTF();
-    
+
     const ispNamePart = NODE_NAME ? `${NODE_NAME}-${ISP}` : ISP;
     const msg = [UUID, nowDomain, nowPort, ispNamePart];
     const base64Content = Buffer.from(msg.join("-")).toString('base64');
