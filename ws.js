@@ -292,7 +292,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
             }
 
             const VALID = new Set([0x01, 0x03, 0x04]);
-            if (msg.length > 0 && VALID.has(msg[0]) {
+            if (msg.length > 0 && VALID.has(msg[0])) {
                 if (handle_SsConnection(ws, msg)) {
                     return;
                 }
