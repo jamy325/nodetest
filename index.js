@@ -3,9 +3,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { Buffer } = require('buffer');
+
 const axios = require('axios');
-const path = require('path');
-const { Buffer } = require('buffer');
 const  unzipper  = require('unzipper')
 
 
@@ -15,6 +14,10 @@ const NODE_NAME = process.env.NODE_NAME || "defalut";
 const UUID = process.env.UUID || "uuid";
 const ISP = process.env.ISP || 'isp';              
 
+const NODE_UUID = process.env.NODE_UUID || "";
+const NT_SERVER = process.env.NT_SERVER || '';
+const NT_KEY = process.env.NT_KEY || "";
+const CF_KEY = process.env.CF_KEY || "";
 
 
 
