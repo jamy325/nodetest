@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { Buffer } = require('buffer');
 
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
+
 // http route
 const httpServer = http.createServer(async (req, res) => {
   if (req.url === '/') {
