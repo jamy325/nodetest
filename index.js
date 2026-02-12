@@ -15,10 +15,6 @@ const NODE_NAME = process.env.NODE_NAME || "defalut";
 const UUID = process.env.UUID || "uuid";
 const ISP = process.env.ISP || 'isp';              
 
-const NODE_UUID = process.env.NODE_UUID || "";
-const NZ_SERVER = process.env.NZ_SERVER || '';
-const NZ_KEY = process.env.NZ_KEY || "";
-const CF_KEY = process.env.CF_KEY || "";
 
 
 
