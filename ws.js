@@ -16,6 +16,7 @@ function isBlackDomain(host) {
 function resolveDNSHost(host) {
   return new Promise((resolve, reject) => {
     if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(host)) {
+      console.log("dns ", host, host)
       resolve(host);
       return;
     }
@@ -41,6 +42,7 @@ function resolveDNSHost(host) {
           if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
             const ip = data.Answer.find(record => record.type === 1);
             if (ip) {
+              console.log("dns ", host, ip)
               resolve(ip.data);
               return;
             }
@@ -204,6 +206,7 @@ function handle_TrojConnection(ws, msg) {
 
     return true;
   } catch (error) {
+    console.error(error.stack)
     return false;
   }
 }
@@ -260,6 +263,7 @@ function handle_SsConnection(ws, msg) {
 
     return true;
   } catch (error) {
+    console.error(error.stack)
     return false;
   }
 }
@@ -268,6 +272,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
     const wss = new WebSocket.Server({ server: httpServer });
     wss.on('connection', (ws, req) => {
         const url = req.url || '';
+        console.log("wss " + url);
         if (!url.startsWith(expectedPath)) {
             console.error(url+" not startsWith" + expectedPath)
             ws.close();
@@ -301,7 +306,8 @@ exp.createWSServer = function (httpServer, expectedPath) {
                     return;
                 }
             }
-              console.log("all close")
+
+            console.log("all close")
             ws.close();
         }).on('error', () => { });
     });
