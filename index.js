@@ -6,7 +6,7 @@ const { Buffer } = require('buffer');
 const os = require('os');
 const axios = require('axios');
 const  unzipper  = require('unzipper')
-
+const { exec, execSync } = require('child_process');
 
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
