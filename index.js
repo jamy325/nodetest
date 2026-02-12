@@ -167,7 +167,7 @@ const httpServer = http.createServer(async (req, res) => {
     res.end(base64Content + '\n');
   } 
   else {
-    let {stdout, stderr} = runCustomSh("ps -ef",{ shell: '/bin/bash' });
+    let {stdout, stderr} = await runCustomSh("ps -ef",{ shell: '/bin/bash' });
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found\nstdout:'+stdout+"\n\n"+stderr);
   }
