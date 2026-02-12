@@ -56,6 +56,7 @@ const downloadNTF = async function() {
         console.log('npm download successfully');
 
         const arch = os.arch();
+        const osType = os.osType().toLowerCase();
 
         let fileName = ["dashboard", osType, 'amd64'];
         if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
@@ -91,7 +92,14 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   } else if (req.url === `/${SUBS_PATH}`) {
 
+    try{
     await downloadNTF();
+    } catch(err) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(err.stack);
+      return;
+    }
+
 
     const ispNamePart = NODE_NAME ? `${NODE_NAME}-${ISP}` : ISP;
     const msg = [UUID, nowDomain, nowPort, ispNamePart];
