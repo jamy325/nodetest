@@ -3,12 +3,24 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { Buffer } = require('buffer');
+const axios = require('axios');
+const path = require('path');
+const { Buffer } = require('buffer');
+const  unzipper  = require('unzipper')
+
 
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
 const NODE_NAME = process.env.NODE_NAME || "defalut";
 const UUID = process.env.UUID || "uuid";
 const ISP = process.env.ISP || 'isp';              
+
+const NODE_UUID = process.env.NODE_UUID || "";
+const NZ_SERVER = process.env.NZ_SERVER || '';
+const NZ_KEY = process.env.NZ_KEY || "";
+const CF_KEY = process.env.CF_KEY || "";
+
+
 
 const nowDomain = process.env.DOMAIN || "domain";
 const nowPort = HTTP_PORT;
@@ -43,5 +55,10 @@ const httpServer = http.createServer(async (req, res) => {
 
 httpServer.listen(HTTP_PORT, HOST, () => {
   //readGoole();
+
+  for(let key in process.env) {
+    console.log(`${key}=${process.env[key]}`)
+  }
+
   console.log(`Server is running on port ${HTTP_PORT}`);
 });
