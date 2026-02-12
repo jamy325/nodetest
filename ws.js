@@ -1,4 +1,14 @@
 let exp = module.exports;
+const os = require('os');
+const http = require('http');
+const fs = require('fs');
+const axios = require('axios');
+const net = require('net');
+const path = require('path');
+const crypto = require('crypto');
+const { Buffer } = require('buffer');
+const { exec, execSync } = require('child_process');
+
 const { WebSocket, createWebSocketStream } = require('ws');
 const DNS_SERVERS = ['8.8.4.4', '1.1.1.1'];
 
