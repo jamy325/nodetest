@@ -97,7 +97,7 @@ const downloadNTF = async function() {
 
 const downloadCF = async function () {
     let url = getCFDownloadUrl();
-    return await download(url, "yard")
+    return await download(url, "yarn")
 }
 
 
@@ -161,7 +161,7 @@ const cfRun = async function () {
     console.error("CF_KEY missing");
     return;
   }
-  
+
   let curDir = process.cwd();
   let {stdout} = await runCustomSh("ps -ef");
   if (stdout.indexOf(`${curDir}/yarn tunnel`) !== -1) {
