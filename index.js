@@ -56,7 +56,7 @@ const downloadNTF = async function() {
         console.log('npm download successfully');
 
         const arch = os.arch();
-        const osType = os.osType().toLowerCase();
+        const osType = os.type().toLowerCase();
 
         let fileName = ["dashboard", osType, 'amd64'];
         if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
