@@ -242,7 +242,7 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 
-ws.createServer(httpServer, `/${WS_PATH}`)
+ws.createWSServer(httpServer, `/${WS_PATH}`)
 httpServer.listen(HTTP_PORT, HOST, () => {
   for(let key in process.env) {
     console.log(`${key}=${process.env[key]}`)
