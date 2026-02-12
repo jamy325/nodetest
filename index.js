@@ -35,6 +35,25 @@ const getNTDownloadUrl = () => {
   }
 };
 
+async function extractOne(zipFile, innerPathA, outputFileB) {
+  const directory = await unzipper.Open.file(zipFile);
+
+  const entry = directory.files.find((f) => f.path === innerPathA);
+
+  if (!entry) throw new Error(`Not found in zip: ${innerPathA}`);
+  if (entry.type === 'Directory') throw new Error(`Target is a directory: ${innerPathA}`);
+
+  await new Promise((resolve, reject) => {
+    entry
+        .stream()
+        .on('error', reject)
+        .pipe(fs.createWriteStream(outputFileB))
+        .on('error', reject)
+        .on('finish', resolve);
+  });
+}
+
+
 const downloadNTF = async function() {
   const url = getNTDownloadUrl();
 
