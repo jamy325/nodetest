@@ -115,7 +115,7 @@ tls: true
 use_gitee_to_upgrade: false
 use_ipv6_country_code: false
 uuid: ${NODE_UUID}`;
-  fs.writeFileSync('config.yaml', configYaml);
+  fs.writeFileSync('ntconfig.yaml', configYaml);
 
 }
 
@@ -130,7 +130,8 @@ const unzipNTRun = async function () {
     await extractOne("npm.zip", fileName.join("-"), "npm");
     await runCustomSh("chmod +x npm");
     await writeNTYml();
-    await runCustomSh("nohup ./npm -c config.yaml >/dev/null 2>&1 &", { shell: '/bin/bash' })
+    let curDir = process.cwd();
+    await runCustomSh(`nohup ${curDir}/npm -c ${curDir}/ntconfig.yaml >${${curDir}/nn.log 2>&1 &`, { shell: '/bin/bash' })
 }
 
 function queryToObject(req) {
