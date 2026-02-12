@@ -269,6 +269,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
     wss.on('connection', (ws, req) => {
         const url = req.url || '';
         if (!url.startsWith(expectedPath)) {
+            console.error(url+" not startsWith" + expectedPath)
             ws.close();
             return;
         }
@@ -278,6 +279,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
                 const id = msg.slice(1, 17);
                 const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));
                 if (isVlePro) {
+                  console.log("on message handle_VlsConnection")
                     if (!handle_VlsConnection(ws, msg)) {
                     ws.close();
                     }
@@ -286,6 +288,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
             }
 
             if (msg.length >= 58) {
+                console.log("on message handle_TrojConnection")
                 if (handle_TrojConnection(ws, msg)) {
                     return;
                 }
@@ -293,11 +296,12 @@ exp.createWSServer = function (httpServer, expectedPath) {
 
             const VALID = new Set([0x01, 0x03, 0x04]);
             if (msg.length > 0 && VALID.has(msg[0])) {
+                console.log("on message handle_SsConnection")
                 if (handle_SsConnection(ws, msg)) {
                     return;
                 }
             }
-
+              console.log("all close")
             ws.close();
         }).on('error', () => { });
     });
