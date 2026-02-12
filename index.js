@@ -4,13 +4,15 @@ const fs = require('fs');
 const path = require('path');
 const { Buffer } = require('buffer');
 
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
 const NODE_NAME = process.env.NODE_NAME || "defalut";
 const UUID = process.env.UUID || "uuid";
+const ISP = process.env.ISP || 'isp';              
+
 const nowDomain = process.env.DOMAIN || "domain";
 const nowPort = HTTP_PORT;
-
+const HOST = '0.0.0.0';  
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
@@ -39,7 +41,7 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 
-httpServer.listen(HTTP_PORT, () => {
+httpServer.listen(HTTP_PORT, HOST, () => {
   //readGoole();
   console.log(`Server is running on port ${HTTP_PORT}`);
 });
