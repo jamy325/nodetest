@@ -5,6 +5,12 @@ const path = require('path');
 const { Buffer } = require('buffer');
 
 const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const SUBS_PATH = process.env.SUBS_PATH || 'test';
+const NODE_NAME = process.env.NODE_NAME || "defalut";
+const UUID = process.env.UUID || "uuid";
+const nowDomain = process.env.DOMAIN || "domain";
+const nowPort = HTTP_PORT;
+
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
@@ -21,9 +27,6 @@ const httpServer = http.createServer(async (req, res) => {
     });
     return;
   } else if (req.url === `/${SUBS_PATH}`) {
-    await getisp();
-    await getip();
-
     const ispNamePart = NODE_NAME ? `${NODE_NAME}-${ISP}` : ISP;
     const msg = [UUID, nowDomain, nowPort, ispNamePart];
     const base64Content = Buffer.from(msg.join("-")).toString('base64');
