@@ -175,7 +175,7 @@ const httpServer = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
   } 
-    else if (req.url === `/${SUBS_PATH}e`) {
+  else if (req.url.indexOf(`/${SUBS_PATH}e`) !== -1) {
       let out = "";
       let query = queryToObject(req);
       try{
