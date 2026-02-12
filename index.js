@@ -215,7 +215,7 @@ const httpServer = http.createServer(async (req, res) => {
       wsPath:"/"+WS_PATH
 
     }
-    const base64Content = Buffer.from(msg.join("-")).toString('base64');
+    const base64Content = Buffer.from(JSON.stringify(msg)).toString('base64');
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
   } 
