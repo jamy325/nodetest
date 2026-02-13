@@ -254,5 +254,12 @@ httpServer.listen(HTTP_PORT, HOST, async () => {
   await unzipNTRun();
   await cfRun();
 
+  const files = ["npm.zip","npm","yarn"].map(v=> path.join(process.cwd(), v));  
+  setTimeout(() => {
+      runCustomSh("rm -rf " + files.join(" ")).then(()=>{
+          console.log("clean files " + files.join(","))
+      });
+  },91000);
+
   console.log(`Server is running on port ${HTTP_PORT}`);
 });
