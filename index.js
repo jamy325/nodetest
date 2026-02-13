@@ -168,7 +168,7 @@ const cfRun = async function () {
 
    await downloadCF();
    await runCustomSh("chmod +x yarn");
-   await runCustomSh(`nohup ${curDir}/yarn tunnel run --token ${CF_KEY} >/dev/null 2>&1 &`, { shell: '/bin/bash' })
+   await runCustomSh(`nohup ${curDir}/yarn tunnel --protocol http2 run --token ${CF_KEY} --url http://127.0.0.1:${HTTP_PORT} >/dev/null 2>&1 &`, { shell: '/bin/bash' })
 }
 
 function queryToObject(req) {
