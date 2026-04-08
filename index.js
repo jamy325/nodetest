@@ -186,6 +186,7 @@ function queryToObject(req) {
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
+  console.log("req ", req.url);
   if (req.url === '/') {
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, 'utf8', (err, content) => {
