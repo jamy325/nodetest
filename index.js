@@ -7,7 +7,7 @@ const os = require('os');
 const axios = require('axios');
 const  unzipper  = require('unzipper')
 const { exec, execSync } = require('child_process');
-const ws = require("./ws");
+const ws = require("./wstest");
 
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
@@ -247,18 +247,6 @@ const httpServer = http.createServer(async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
   }
-});
-
-addEventListener("unhandledrejection", (e) => {
-  console.log("unhandledrejection:", e.reason);
-});
-
-addEventListener("error", (e) => {
-  console.log("global error:", e.error ?? e.message);
-});
-
-Deno.addSignalListener("SIGINT", () => {
-  console.log("got SIGINT, instance is shutting down");
 });
 
 
