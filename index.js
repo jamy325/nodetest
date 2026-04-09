@@ -186,7 +186,11 @@ function queryToObject(req) {
 
 // http route
 const httpServer = http.createServer(async (req, res) => {
-  console.log("req ", req.url);
+  const ip = req.socket.remoteAddress;
+  const port = req.socket.remotePort;
+  const forwardedFor = req.headers['x-forwarded-for'];
+
+  console.log("req ", req.url, ip,port, forwardedFor);
   if (req.url === '/') {
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, 'utf8', (err, content) => {
@@ -246,11 +250,11 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 process.on('uncaughtException', function(err){
-  console.error("uncaughtException ", err)
+  console.log("uncaughtException ", err)
 })
 
 process.on('unhandledRejection', function(err){
-  console.error("unhandledRejection ", err)
+  console.log("unhandledRejection ", err)
 })
 
 ws.createWSServer(httpServer, `/${WS_PATH}`)
