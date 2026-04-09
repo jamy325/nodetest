@@ -333,3 +333,223 @@ exp.createWSServer = function (httpServer, expectedPath) {
          });
     });
 }
+
+exp.createDenoServer = function (port, expectedPath) {
+
+   const wss = createDenoWSServer({port,expectedPath});
+    console.log("create web socket", !!wss);
+    wss.on('connection', (ws, req) => {
+        const ip = req.socket.remoteAddress;
+        const port = req.socket.remotePort;
+
+        const url = req.url || '';
+        console.log("wss " + url, ip, port, expectedPath);
+        if (url !== expectedPath) {
+            console.log(url+" not startsWith" + expectedPath)
+            ws.close();
+            return;
+        }
+
+        ws.once('message', msg => {
+            console.log("wss msg", msg);
+            if (msg.length > 17 && msg[0] === 0) {
+                const id = msg.slice(1, 17);
+                const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));
+                if (isVlePro) {
+                  console.log("on message handle_VlsConnection")
+                    if (!handle_VlsConnection(ws, msg)) {
+                        ws.close();
+                    }
+                    return;
+                }
+            }
+
+            if (msg.length >= 58) {
+                console.log("on message handle_TrojConnection")
+                if (handle_TrojConnection(ws, msg)) {
+                    return;
+                }
+            }
+
+            const VALID = new Set([0x01, 0x03, 0x04]);
+            if (msg.length > 0 && VALID.has(msg[0])) {
+                console.log("on message handle_SsConnection")
+                if (handle_SsConnection(ws, msg)) {
+                    return;
+                }
+            }
+
+            console.log("all close")
+            ws.close();
+        }).on('error', (err) => {
+            console.log("websocket error", err)
+         });
+    });
+}
+
+function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
+  const listeners = {
+    connection: new Set(),
+  };
+
+  function emit(event, ...args) {
+    const set = listeners[event];
+    if (!set) return;
+    for (const fn of set) {
+      try {
+        fn(...args);
+      } catch (err) {
+        console.error(`[wss ${event} handler error]`, err);
+      }
+    }
+  }
+
+  function createWSAdapter(socket) {
+    const wsListeners = {
+      open: new Set(),
+      message: new Set(),
+      close: new Set(),
+      error: new Set(),
+    };
+
+    socket.addEventListener('open', () => {
+      for (const fn of wsListeners.open) fn();
+    });
+
+    socket.addEventListener('message', (e) => {
+      for (const fn of wsListeners.message) {
+        fn(e.data, false);
+      }
+    });
+
+    socket.addEventListener('close', (e) => {
+      for (const fn of wsListeners.close) {
+        fn(e.code, e.reason);
+      }
+    });
+
+    socket.addEventListener('error', (e) => {
+      for (const fn of wsListeners.error) {
+        fn(e);
+      }
+    });
+
+    function addListener(event, handler, once = false) {
+      if (!wsListeners[event]) {
+        return ws;
+      }
+      const wrapped = once
+        ? (...args) => {
+            wsListeners[event].delete(wrapped);
+            handler(...args);
+          }
+        : handler;
+
+      wsListeners[event].add(wrapped);
+      return ws;
+    }
+
+    return {
+      send(data) {
+        socket.send(data);
+        return ws;
+      },
+      close(code, reason) {
+        socket.close(code, reason);
+        return ws;
+      },
+      on(event, handler) {
+        return addListener(event, handler, false);
+      },
+      once(event, handler) {
+        return addListener(event, handler, true);
+      },
+      off(event, handler) {
+        if (wsListeners[event]) {
+          wsListeners[event].delete(handler);
+        }
+        return ws;
+      },
+      removeListener(event, handler) {
+        return ws.off(event, handler);
+      },
+      get readyState() {
+        return socket.readyState;
+      },
+      OPEN: WebSocket.OPEN,
+      CLOSING: WebSocket.CLOSING,
+      CLOSED: WebSocket.CLOSED,
+      raw: socket,
+    };
+  }
+
+  function createReqAdapter(req) {
+    const urlObj = new URL(req.url);
+
+    // 尽量模拟 Node 的 req.url，只保留 path/query
+    const nodeStyleUrl = urlObj.pathname + urlObj.search;
+
+    // 在 Deno Deploy 里通常拿不到真实 remotePort
+    // IP 也未必总能拿到，这里优先从代理头取
+    const xff = req.headers.get('x-forwarded-for');
+    const xRealIp = req.headers.get('x-real-ip');
+    const xClientPort = req.headers.get('x-client-port');
+
+    const ip = xff
+      ? xff.split(',')[0].trim()
+      : (xRealIp || undefined);
+
+    const port = xClientPort ? Number(xClientPort) : undefined;
+
+    return {
+      url: nodeStyleUrl,
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+      socket: {
+        remoteAddress: ip,
+        remotePort: Number.isNaN(port) ? undefined : port,
+      },
+      raw: req,
+    };
+  }
+
+  const server = Deno.serve({ hostname: host, port }, (req) => {
+    const urlObj = new URL(req.url);
+
+    if (urlObj.pathname !== expectedPath) {
+      return new Response('not found', { status: 404 });
+    }
+
+    if (req.headers.get('upgrade') !== 'websocket') {
+      return new Response('expected websocket', { status: 426 });
+    }
+
+    const { socket, response } = Deno.upgradeWebSocket(req);
+
+    const ws = createWSAdapter(socket);
+    const adaptedReq = createReqAdapter(req);
+
+    emit('connection', ws, adaptedReq);
+
+    return response;
+  });
+
+  return {
+    server,
+    on(event, handler) {
+      if (listeners[event]) {
+        listeners[event].add(handler);
+      }
+      return this;
+    },
+    off(event, handler) {
+      if (listeners[event]) {
+        listeners[event].delete(handler);
+      }
+      return this;
+    },
+    close() {
+      server.shutdown();
+    },
+  };
+}

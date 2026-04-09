@@ -7,8 +7,8 @@ const os = require('os');
 const axios = require('axios');
 const  unzipper  = require('unzipper')
 const { exec, execSync } = require('child_process');
-//const ws = require("./wstest");
-const { WebSocketServer } = require("ws");
+const ws = require("./wstest");
+// const { WebSocketServer } = require("ws");
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
 const NODE_NAME = process.env.NODE_NAME || "defalut";
@@ -203,125 +203,4 @@ function queryToObject(req) {
 }
 
 Init();
-
-const ISOLATE_ID = process.env.DENO_ISOLATE_ID || 'unknown-isolate';
-const DEPLOYMENT_ID = process.env.DENO_DEPLOYMENT_ID || 'unknown-deployment';
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-  console.log("[http in]", {
-    isolate: ISOLATE_ID,
-    deployment: DEPLOYMENT_ID,
-    pathname: url.pathname,
-    upgrade: req.headers.upgrade,
-    time: new Date().toISOString(),
-  });
-
-  if (url.pathname !== WS_PATH) {
-    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
-    res.end("not found");
-    return;
-  }
-
-  res.writeHead(426, { "content-type": "text/plain; charset=utf-8" });
-  res.end("expected websocket");
-});
-
-const wss = new WebSocketServer({ noServer: true });
-
-server.on("upgrade", (req, socket, head) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-  console.log("[upgrade]", {
-    isolate: ISOLATE_ID,
-    deployment: DEPLOYMENT_ID,
-    pathname: url.pathname,
-    time: new Date().toISOString(),
-  });
-
-  if (url.pathname !== WS_PATH) {
-    socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-    socket.destroy();
-    return;
-  }
-
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit("connection", ws, req);
-  });
-});
-
-wss.on("connection", (ws, req) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-  console.log("[wss connection]", {
-    isolate: ISOLATE_ID,
-    deployment: DEPLOYMENT_ID,
-    pathname: url.pathname,
-    ip: req.socket?.remoteAddress,
-    port: req.socket?.remotePort,
-    time: new Date().toISOString(),
-  });
-
-  ws.send(JSON.stringify({
-    type: "connected",
-    isolate: ISOLATE_ID,
-    deployment: DEPLOYMENT_ID,
-    pathname: url.pathname,
-  }));
-
-  const timer = setInterval(() => {
-    try {
-      ws.ping();
-      console.log("[ws ping]", {
-        isolate: ISOLATE_ID,
-        deployment: DEPLOYMENT_ID,
-        time: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("[ws ping error]", err);
-      clearInterval(timer);
-    }
-  }, 1000);
-
-  ws.on("message", (data) => {
-    const text = typeof data === "string" ? data : data.toString();
-    console.log("[ws message]", {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      data: text,
-      time: new Date().toISOString(),
-    });
-    ws.send(`echo:${text}`);
-  });
-
-  ws.on("close", (code, reason) => {
-    clearInterval(timer);
-    console.warn("[ws close]", {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      code,
-      reason: reason?.toString?.() || "",
-      time: new Date().toISOString(),
-    });
-  });
-
-  ws.on("error", (err) => {
-    console.error("[ws error]", {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      error: String(err),
-      time: new Date().toISOString(),
-    });
-  });
-});
-
-server.listen(HTTP_PORT, HOST, () => {
-  console.log("[listen]", {
-    host: HOST,
-    port: HTTP_PORT,
-    isolate: ISOLATE_ID,
-    deployment: DEPLOYMENT_ID,
-    time: new Date().toISOString(),
-  });
-});
-
+ws.createDenoServer(HTTP_PORT, `/${WS_PATH}`);
