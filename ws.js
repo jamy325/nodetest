@@ -290,8 +290,8 @@ exp.createWSServer = function (httpServer, expectedPath) {
         const port = req.socket.remotePort;
 
         const url = req.url || '';
-        console.log("wss " + url, ip, port);
-        if (!url.startsWith(expectedPath)) {
+        console.log("wss " + url, ip, port, expectedPath);
+        if (url !== expectedPath) {
             console.log(url+" not startsWith" + expectedPath)
             ws.close();
             return;
