@@ -184,7 +184,7 @@ function queryToObject(req) {
   return obj;
 }
 
- async Init() => {
+ async function Init()  {
   for(let key in process.env) {
     console.log(`${key}=${process.env[key]}`)
   }
@@ -223,7 +223,7 @@ try {
   });
 } catch {}
 
-Deno.serve((req) => {
+Deno.serve(  { hostname: "0.0.0.0", port: HTTP_PORT }, (req) => {
   const url = new URL(req.url);
 
   console.log('[http in]', {
