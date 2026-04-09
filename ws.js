@@ -283,8 +283,8 @@ function handle_SsConnection(ws, msg) {
 }
 
 exp.createWSServer = function (httpServer, expectedPath) {
-
     const wss = new WebSocket.Server({ server: httpServer });
+    console.log("create web socket", wss);
     wss.on('connection', (ws, req) => {
         const url = req.url || '';
         console.log("wss " + url);
