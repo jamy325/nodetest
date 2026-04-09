@@ -482,6 +482,8 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
         wsListeners[event].add(wrapped);
         return ws;
       }
+
+      return ws;
   }
 
   function createReqAdapter(req) {
