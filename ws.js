@@ -127,14 +127,26 @@ const handle_VlsConnection = function (ws, msg) {
     .then(resolvedIP => {
       net.connect({ host: resolvedIP, port }, function () {
         this.write(msg.slice(i));
-        duplex.on('error', () => { }).pipe(this).on('error', () => { }).pipe(duplex);
-      }).on('error', () => { });
+        duplex.on('error', (err) => { 
+            console.log("error ", err.stack)
+        }).pipe(this).on('error', (err) => { 
+     console.log("error ", err.stack)
+        }).pipe(duplex);
+      }).on('error', (err) => { 
+     console.log("error ", err.stack)
+      });
     })
     .catch(error => {
       net.connect({ host, port }, function () {
         this.write(msg.slice(i));
-        duplex.on('error', () => { }).pipe(this).on('error', () => { }).pipe(duplex);
-      }).on('error', () => { });
+        duplex.on('error', (err) => { 
+     console.log("error ", err.stack)
+        }).pipe(this).on('error', (err) => {
+     console.log("error ", err.stack)
+         }).pipe(duplex);
+      }).on('error', (err) => { 
+     console.log("error ", err.stack)
+      });
     });
 
   return true;
@@ -202,6 +214,7 @@ function handle_TrojConnection(ws, msg) {
       return false;
     }
 
+    console.log("-------try createWebSocketStream---")
     const duplex = createWebSocketStream(ws);
     resolveDNSHost(host)
       .then(resolvedIP => {
