@@ -284,24 +284,28 @@ function handle_SsConnection(ws, msg) {
 
 exp.createWSServer = function (httpServer, expectedPath) {
     const wss = new WebSocket.Server({ server: httpServer });
-    console.log("create web socket", wss);
+    console.log("create web socket", !!wss);
     wss.on('connection', (ws, req) => {
+        const ip = req.socket.remoteAddress;
+        const port = req.socket.remotePort;
+
         const url = req.url || '';
-        console.log("wss " + url);
+        console.log("wss " + url, ip, port);
         if (!url.startsWith(expectedPath)) {
-            console.error(url+" not startsWith" + expectedPath)
+            console.log(url+" not startsWith" + expectedPath)
             ws.close();
             return;
         }
 
         ws.once('message', msg => {
+
             if (msg.length > 17 && msg[0] === 0) {
                 const id = msg.slice(1, 17);
                 const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));
                 if (isVlePro) {
                   console.log("on message handle_VlsConnection")
                     if (!handle_VlsConnection(ws, msg)) {
-                    ws.close();
+                        ws.close();
                     }
                     return;
                 }
@@ -324,6 +328,8 @@ exp.createWSServer = function (httpServer, expectedPath) {
 
             console.log("all close")
             ws.close();
-        }).on('error', () => { });
+        }).on('error', (err) => {
+            console.log("websocket error", err)
+         });
     });
 }
