@@ -441,30 +441,31 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
       close: new Set(),
       error: new Set(),
     };
-    socket.binaryType = "arraybuffer";
+
     socket.addEventListener('open', () => {
       for (const fn of wsListeners.open) fn();
     });
 
-    socket.addEventListener('message', (e) => {
-      let msg = e.data;
+      socket.binaryType = "arraybuffer";
+      socket.addEventListener("message", async (e) => {
+        let msg = e.data;
 
-    if (msg instanceof Blob) {
-      msg = new Uint8Array(await msg.arrayBuffer());
-    } else {
-      msg = normalizeMessage(msg);
-    }
+        if (msg instanceof Blob) {
+          msg = new Uint8Array(await msg.arrayBuffer());
+        } else {
+          msg = normalizeMessage(msg);
+        }
 
-    const isBinary = typeof msg !== "string";
+        const isBinary = typeof msg !== "string";
 
-    for (const fn of [...wsListeners.message]) {
-      try {
-        fn(msg, isBinary);
-      } catch (err) {
-        console.error("[ws message handler error]", err);
-      }
-    } 
-    });
+        for (const fn of [...wsListeners.message]) {
+          try {
+            fn(msg, isBinary);
+          } catch (err) {
+            console.error("[ws message handler error]", err);
+          }
+        }
+      });
 
     socket.addEventListener('close', (e) => {
       for (const fn of wsListeners.close) {
