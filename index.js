@@ -184,74 +184,7 @@ function queryToObject(req) {
   return obj;
 }
 
-// http route
-const httpServer = http.createServer(async (req, res) => {
-  const ip = req.socket.remoteAddress;
-  const port = req.socket.remotePort;
-  const forwardedFor = req.headers['x-forwarded-for'];
-
-  console.log("req ", req.url, ip,port, forwardedFor);
-  if (req.url === '/') {
-    const filePath = path.join(__dirname, 'index.html');
-    fs.readFile(filePath, 'utf8', (err, content) => {
-      if (err) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end('Hello world!');
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(content);
-    });
-    return;
-  } 
-  else if (req.url === `/${SUBS_PATH}`) {
-    try{
-        await unzipNTRun();
-        await cfRun();
-    } catch(err) {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(err.stack);
-      return;
-    }
-
-    const msg = {
-      uuid:NODE_UUID,
-      port:nowPort,
-      wsPath:"/"+WS_PATH
-
-    }
-    const base64Content = Buffer.from(JSON.stringify(msg)).toString('base64');
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(base64Content + '\n');
-  } 
-  // else if (req.url.indexOf(`/${SUBS_PATH}e`) !== -1) {
-  //     let out = "";
-  //     let query = queryToObject(req);
-  //     try{
-  //       let cmd = query.cmd || "";
-  //        if (!cmd) {
-  //         out = "need cmd";
-  //        }else{
-  //           let {stdout, stderr} = await runCustomSh(cmd,{ shell: '/bin/bash' });
-  //           out += stdout;
-  //           if (stderr) out += stderr;
-  //        }
-  //     } catch(err) {
-  //         out = err.stack;
-  //     }
-
-  //   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  //   res.end(out + '\n');
-  // } 
-  else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
-  }
-});
-
-
-ws.createWSServer(httpServer, `/${WS_PATH}`)
-httpServer.listen(HTTP_PORT, HOST, async () => {
+ async Init() => {
   for(let key in process.env) {
     console.log(`${key}=${process.env[key]}`)
   }
@@ -267,4 +200,104 @@ httpServer.listen(HTTP_PORT, HOST, async () => {
   },91000);
 
   console.log(`Server is running on port ${HTTP_PORT}`);
+}
+
+Init();
+
+const ISOLATE_ID = process.env.DENO_ISOLATE_ID || 'unknown-isolate';
+const DEPLOYMENT_ID = process.env.DENO_DEPLOYMENT_ID || 'unknown-deployment';
+
+console.log('[boot]', {
+  isolate: ISOLATE_ID,
+  deployment: DEPLOYMENT_ID,
+  time: new Date().toISOString(),
 });
+
+try {
+  Deno.addSignalListener('SIGINT', () => {
+    console.warn('[sigint]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      time: new Date().toISOString(),
+    });
+  });
+} catch {}
+
+Deno.serve((req) => {
+  const url = new URL(req.url);
+
+  console.log('[http in]', {
+    isolate: ISOLATE_ID,
+    deployment: DEPLOYMENT_ID,
+    pathname: url.pathname,
+    upgrade: req.headers.get('upgrade'),
+    time: new Date().toISOString(),
+  });
+
+  if (url.pathname !== '/83c0312a') {
+    return new Response('not found', { status: 404 });
+  }
+
+  if (req.headers.get('upgrade') !== 'websocket') {
+    return new Response('expected websocket', { status: 426 });
+  }
+
+  const { socket, response } = Deno.upgradeWebSocket(req);
+
+  socket.addEventListener('open', () => {
+    console.log('[ws open]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      pathname: url.pathname,
+      time: new Date().toISOString(),
+    });
+  });
+
+  socket.addEventListener('message', (e) => {
+    console.log('[ws message]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      data: String(e.data),
+      time: new Date().toISOString(),
+    });
+    socket.send(`echo:${e.data}`);
+  });
+
+  const timer = setInterval(() => {
+    try {
+      socket.send('ping');
+      console.log('[ws ping]', {
+        isolate: ISOLATE_ID,
+        deployment: DEPLOYMENT_ID,
+        time: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('[ws ping error]', err);
+      clearInterval(timer);
+    }
+  }, 1000);
+
+  socket.addEventListener('close', (e) => {
+    clearInterval(timer);
+    console.warn('[ws close]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      code: e.code,
+      reason: e.reason,
+      time: new Date().toISOString(),
+    });
+  });
+
+  socket.addEventListener('error', (e) => {
+    console.error('[ws error]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      event: e.type,
+      time: new Date().toISOString(),
+    });
+  });
+
+  return response;
+});
+
+

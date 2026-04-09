@@ -26,6 +26,25 @@ try {
   console.warn('[signal-listener-failed]', INSTANCE_ID, err);
 }
 
+const ISOLATE_ID = process.env.DENO_ISOLATE_ID || 'unknown-isolate';
+const DEPLOYMENT_ID = process.env.DENO_DEPLOYMENT_ID || 'unknown-deployment';
+
+console.log('[boot]', {
+  isolate: ISOLATE_ID,
+  deployment: DEPLOYMENT_ID,
+  time: new Date().toISOString(),
+});
+
+try {
+  Deno.addSignalListener('SIGINT', () => {
+    console.warn('[sigint]', {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      time: new Date().toISOString(),
+    });
+  });
+} catch {}
+
 exp.createWSServer = function (httpServer, expectedPath) {
   const wss = new WebSocket.Server({ server: httpServer });
   console.log('[create web socket]', INSTANCE_ID, !!wss);
@@ -34,6 +53,15 @@ exp.createWSServer = function (httpServer, expectedPath) {
     const ip = req?.socket?.remoteAddress;
     const port = req?.socket?.remotePort;
     const url = req?.url || '';
+
+    console.log('[wss connection]', {
+        isolate: ISOLATE_ID,
+        deployment: DEPLOYMENT_ID,
+        url,
+        ip,
+        port,
+        expectedPath,
+        });
 
     console.log('[wss connection]', INSTANCE_ID, {
       url,
