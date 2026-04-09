@@ -249,6 +249,7 @@ function handle_SsConnection(ws, msg) {
         .map(b => b.readUInt16BE(0).toString(16)).join(':');
       offset += 16;
     } else {
+      console.log("handle_SsConnection fail ,invalid type", atyp)
       return false;
     }
 
@@ -390,6 +391,32 @@ exp.createDenoServer = function (port, expectedPath) {
     });
 }
 
+function normalizeMessage(data) {
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return new Uint8Array(data);
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+
+  if (data instanceof Blob) {
+    // 注意：这里不能直接同步返回 Uint8Array
+    // Blob 需要异步 arrayBuffer()，所以最好服务端 binaryType 已经设为 "arraybuffer"
+    return data;
+  }
+
+  return data;
+}
+
 function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
   const listeners = {
     connection: new Set(),
@@ -414,15 +441,29 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
       close: new Set(),
       error: new Set(),
     };
-
+    socket.binaryType = "arraybuffer";
     socket.addEventListener('open', () => {
       for (const fn of wsListeners.open) fn();
     });
 
     socket.addEventListener('message', (e) => {
-      for (const fn of wsListeners.message) {
-        fn(e.data, false);
+      let msg = e.data;
+
+    if (msg instanceof Blob) {
+      msg = new Uint8Array(await msg.arrayBuffer());
+    } else {
+      msg = normalizeMessage(msg);
+    }
+
+    const isBinary = typeof msg !== "string";
+
+    for (const fn of [...wsListeners.message]) {
+      try {
+        fn(msg, isBinary);
+      } catch (err) {
+        console.error("[ws message handler error]", err);
       }
+    } 
     });
 
     socket.addEventListener('close', (e) => {
