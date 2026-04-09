@@ -155,7 +155,7 @@ function handle_TrojConnection(ws, msg) {
         break;
       }
     }
-
+     console.log("password match ", !!matchedPassword )
     if (!matchedPassword) return false;
 
     let offset = 56;
@@ -184,6 +184,8 @@ function handle_TrojConnection(ws, msg) {
       host = msg.slice(offset, offset + 16).reduce((s, b, i, a) => (i % 2 ? s.concat(a.slice(i - 1, i + 1)) : s), []).map(b => b.readUInt16BE(0).toString(16)).join(':');
       offset += 16;
     } else {
+
+          console.log("not support type", atyp );
       return false;
     }
 
@@ -196,6 +198,7 @@ function handle_TrojConnection(ws, msg) {
 
     if (isBlackDomain(host)) {
       ws.close();
+           console.log("isBlackDomain", host );
       return false;
     }
 
