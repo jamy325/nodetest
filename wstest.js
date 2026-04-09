@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const WebSocket = require('ws');
 
 const INSTANCE_ID = crypto.randomUUID();
+let exp = module.exports;
 
 console.log('[boot]', INSTANCE_ID, new Date().toISOString());
 
