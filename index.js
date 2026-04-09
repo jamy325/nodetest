@@ -245,6 +245,13 @@ const httpServer = http.createServer(async (req, res) => {
   }
 });
 
+process.on('uncaughtException', function(err){
+  console.error("uncaughtException ", err)
+})
+
+process.on('unhandledRejection', function(err){
+  console.error("unhandledRejection ", err)
+})
 
 ws.createWSServer(httpServer, `/${WS_PATH}`)
 httpServer.listen(HTTP_PORT, HOST, async () => {
