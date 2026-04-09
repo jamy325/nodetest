@@ -8,8 +8,8 @@ const path = require('path');
 const crypto = require('crypto');
 const { Buffer } = require('buffer');
 const { exec, execSync } = require('child_process');
+const { Duplex } = require("stream");
 
-const { WebSocket, createWebSocketStream } = require('ws');
 const DNS_SERVERS = ['8.8.4.4', '1.1.1.1'];
 
 const BLACK_DOMAINS = [];
@@ -299,58 +299,6 @@ function handle_SsConnection(ws, msg) {
   }
 }
 
-exp.createWSServer = function (httpServer, expectedPath) {
-    const wss = new WebSocket.Server({ server: httpServer });
-    console.log("create web socket", !!wss);
-    wss.on('connection', (ws, req) => {
-        const ip = req.socket.remoteAddress;
-        const port = req.socket.remotePort;
-
-        const url = req.url || '';
-        console.log("wss " + url, ip, port, expectedPath);
-        if (url !== expectedPath) {
-            console.log(url+" not startsWith" + expectedPath)
-            ws.close();
-            return;
-        }
-
-        ws.once('message', msg => {
-            console.log("wss msg", msg);
-            if (msg.length > 17 && msg[0] === 0) {
-                const id = msg.slice(1, 17);
-                const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));
-                if (isVlePro) {
-                  console.log("on message handle_VlsConnection")
-                    if (!handle_VlsConnection(ws, msg)) {
-                        ws.close();
-                    }
-                    return;
-                }
-            }
-
-            if (msg.length >= 58) {
-                console.log("on message handle_TrojConnection")
-                if (handle_TrojConnection(ws, msg)) {
-                    return;
-                }
-            }
-
-            const VALID = new Set([0x01, 0x03, 0x04]);
-            if (msg.length > 0 && VALID.has(msg[0])) {
-                console.log("on message handle_SsConnection")
-                if (handle_SsConnection(ws, msg)) {
-                    return;
-                }
-            }
-
-            console.log("all close")
-            ws.close();
-        }).on('error', (err) => {
-            console.log("websocket error", err)
-         });
-    });
-}
-
 exp.createDenoServer = function (port, expectedPath) {
 
    const wss = createDenoWSServer({port,expectedPath});
@@ -629,4 +577,84 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
       server.shutdown();
     },
   };
+}
+
+
+function createWebSocketStream(ws) {
+  const duplex = new Duplex({
+    read() {
+      // 数据由 ws 的 message 事件主动 push 进来
+    },
+
+    write(chunk, encoding, callback) {
+      try {
+        if (typeof chunk === "string") {
+          ws.send(chunk);
+        } else if (Buffer.isBuffer(chunk)) {
+          ws.send(chunk);
+        } else if (chunk instanceof Uint8Array) {
+          ws.send(chunk);
+        } else if (chunk instanceof ArrayBuffer) {
+          ws.send(new Uint8Array(chunk));
+        } else {
+          ws.send(Buffer.from(chunk));
+        }
+        callback();
+      } catch (err) {
+        callback(err);
+      }
+    },
+
+    final(callback) {
+      try {
+        ws.close();
+        callback();
+      } catch (err) {
+        callback(err);
+      }
+    },
+
+    destroy(err, callback) {
+      try {
+        if (ws.readyState !== ws.CLOSED) {
+          ws.close();
+        }
+      } catch (_) {
+        // ignore
+      }
+      callback(err);
+    },
+  });
+
+  ws.on("message", (msg) => {
+    try {
+      let chunk;
+
+      if (typeof msg === "string") {
+        chunk = Buffer.from(msg);
+      } else if (Buffer.isBuffer(msg)) {
+        chunk = msg;
+      } else if (msg instanceof Uint8Array) {
+        chunk = Buffer.from(msg);
+      } else if (msg instanceof ArrayBuffer) {
+        chunk = Buffer.from(msg);
+      } else {
+        chunk = Buffer.from(msg);
+      }
+
+      duplex.push(chunk);
+    } catch (err) {
+      duplex.destroy(err);
+    }
+  });
+
+  ws.on("close", () => {
+    duplex.push(null);
+  });
+
+  ws.on("error", (err) => {
+    duplex.destroy(err);
+  });
+
+  return duplex;
 }
