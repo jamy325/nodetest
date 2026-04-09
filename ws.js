@@ -316,7 +316,7 @@ exp.createDenoServer = function (port, expectedPath) {
         }
 
         ws.once('message', msg => {
-            console.log("on wss msg", msg);
+            console.log("on wss msg", msg.length);
             if (msg.length > 17 && msg[0] === 0) {
                 const id = msg.slice(1, 17);
                 const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));
@@ -347,7 +347,7 @@ exp.createDenoServer = function (port, expectedPath) {
             console.log("not find all close")
             ws.close();
         }).on('error', (err) => {
-            console.log("websocket error", err)
+            console.log("websocket error", err.message)
          });
     });
 }
