@@ -298,7 +298,7 @@ exp.createWSServer = function (httpServer, expectedPath) {
         }
 
         ws.once('message', msg => {
-
+            console.log("wss msg", msg);
             if (msg.length > 17 && msg[0] === 0) {
                 const id = msg.slice(1, 17);
                 const isVlePro = id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16));

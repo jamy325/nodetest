@@ -249,13 +249,18 @@ const httpServer = http.createServer(async (req, res) => {
   }
 });
 
-process.on('uncaughtException', function(err){
-  console.log("uncaughtException ", err)
-})
+addEventListener("unhandledrejection", (e) => {
+  console.log("unhandledrejection:", e.reason);
+});
 
-process.on('unhandledRejection', function(err){
-  console.log("unhandledRejection ", err)
-})
+addEventListener("error", (e) => {
+  console.log("global error:", e.error ?? e.message);
+});
+
+Deno.addSignalListener("SIGINT", () => {
+  console.log("got SIGINT, instance is shutting down");
+});
+
 
 ws.createWSServer(httpServer, `/${WS_PATH}`)
 httpServer.listen(HTTP_PORT, HOST, async () => {
