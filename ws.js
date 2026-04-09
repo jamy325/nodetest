@@ -434,22 +434,8 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
       }
     });
 
-    function addListener(event, handler, once = false) {
-      if (!wsListeners[event]) {
-        return ws;
-      }
-      const wrapped = once
-        ? (...args) => {
-            wsListeners[event].delete(wrapped);
-            handler(...args);
-          }
-        : handler;
-
-      wsListeners[event].add(wrapped);
-      return ws;
-    }
-
-    return {
+ 
+    let ws = {
       send(data) {
         socket.send(data);
         return ws;
@@ -481,6 +467,21 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
       CLOSED: WebSocket.CLOSED,
       raw: socket,
     };
+
+    function addListener(event, handler, once = false) {
+        if (!wsListeners[event]) {
+          return ws;
+        }
+        const wrapped = once
+          ? (...args) => {
+              wsListeners[event].delete(wrapped);
+              handler(...args);
+            }
+          : handler;
+
+        wsListeners[event].add(wrapped);
+        return ws;
+      }
   }
 
   function createReqAdapter(req) {
