@@ -7,8 +7,8 @@ const os = require('os');
 const axios = require('axios');
 const  unzipper  = require('unzipper')
 const { exec, execSync } = require('child_process');
-const ws = require("./wstest");
-
+//const ws = require("./wstest");
+const { WebSocketServer } = require("ws");
 const HTTP_PORT = process.env.PORT || 3000;
 const SUBS_PATH = process.env.SUBS_PATH || 'test';
 const NODE_NAME = process.env.NODE_NAME || "defalut";
