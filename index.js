@@ -206,98 +206,122 @@ Init();
 
 const ISOLATE_ID = process.env.DENO_ISOLATE_ID || 'unknown-isolate';
 const DEPLOYMENT_ID = process.env.DENO_DEPLOYMENT_ID || 'unknown-deployment';
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
-console.log('[boot]', {
-  isolate: ISOLATE_ID,
-  deployment: DEPLOYMENT_ID,
-  time: new Date().toISOString(),
-});
-
-try {
-  Deno.addSignalListener('SIGINT', () => {
-    console.warn('[sigint]', {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      time: new Date().toISOString(),
-    });
-  });
-} catch {}
-
-Deno.serve(  { hostname: "0.0.0.0", port: HTTP_PORT }, (req) => {
-  const url = new URL(req.url);
-
-  console.log('[http in]', {
+  console.log("[http in]", {
     isolate: ISOLATE_ID,
     deployment: DEPLOYMENT_ID,
     pathname: url.pathname,
-    upgrade: req.headers.get('upgrade'),
+    upgrade: req.headers.upgrade,
     time: new Date().toISOString(),
   });
 
-  if (url.pathname !== '/83c0312a') {
-    return new Response('not found', { status: 404 });
+  if (url.pathname !== WS_PATH) {
+    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+    res.end("not found");
+    return;
   }
 
-  if (req.headers.get('upgrade') !== 'websocket') {
-    return new Response('expected websocket', { status: 426 });
+  res.writeHead(426, { "content-type": "text/plain; charset=utf-8" });
+  res.end("expected websocket");
+});
+
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (req, socket, head) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+
+  console.log("[upgrade]", {
+    isolate: ISOLATE_ID,
+    deployment: DEPLOYMENT_ID,
+    pathname: url.pathname,
+    time: new Date().toISOString(),
+  });
+
+  if (url.pathname !== WS_PATH) {
+    socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+    socket.destroy();
+    return;
   }
 
-  const { socket, response } = Deno.upgradeWebSocket(req);
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit("connection", ws, req);
+  });
+});
 
-  socket.addEventListener('open', () => {
-    console.log('[ws open]', {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      pathname: url.pathname,
-      time: new Date().toISOString(),
-    });
+wss.on("connection", (ws, req) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+
+  console.log("[wss connection]", {
+    isolate: ISOLATE_ID,
+    deployment: DEPLOYMENT_ID,
+    pathname: url.pathname,
+    ip: req.socket?.remoteAddress,
+    port: req.socket?.remotePort,
+    time: new Date().toISOString(),
   });
 
-  socket.addEventListener('message', (e) => {
-    console.log('[ws message]', {
-      isolate: ISOLATE_ID,
-      deployment: DEPLOYMENT_ID,
-      data: String(e.data),
-      time: new Date().toISOString(),
-    });
-    socket.send(`echo:${e.data}`);
-  });
+  ws.send(JSON.stringify({
+    type: "connected",
+    isolate: ISOLATE_ID,
+    deployment: DEPLOYMENT_ID,
+    pathname: url.pathname,
+  }));
 
   const timer = setInterval(() => {
     try {
-      socket.send('ping');
-      console.log('[ws ping]', {
+      ws.ping();
+      console.log("[ws ping]", {
         isolate: ISOLATE_ID,
         deployment: DEPLOYMENT_ID,
         time: new Date().toISOString(),
       });
     } catch (err) {
-      console.error('[ws ping error]', err);
+      console.error("[ws ping error]", err);
       clearInterval(timer);
     }
   }, 1000);
 
-  socket.addEventListener('close', (e) => {
+  ws.on("message", (data) => {
+    const text = typeof data === "string" ? data : data.toString();
+    console.log("[ws message]", {
+      isolate: ISOLATE_ID,
+      deployment: DEPLOYMENT_ID,
+      data: text,
+      time: new Date().toISOString(),
+    });
+    ws.send(`echo:${text}`);
+  });
+
+  ws.on("close", (code, reason) => {
     clearInterval(timer);
-    console.warn('[ws close]', {
+    console.warn("[ws close]", {
       isolate: ISOLATE_ID,
       deployment: DEPLOYMENT_ID,
-      code: e.code,
-      reason: e.reason,
+      code,
+      reason: reason?.toString?.() || "",
       time: new Date().toISOString(),
     });
   });
 
-  socket.addEventListener('error', (e) => {
-    console.error('[ws error]', {
+  ws.on("error", (err) => {
+    console.error("[ws error]", {
       isolate: ISOLATE_ID,
       deployment: DEPLOYMENT_ID,
-      event: e.type,
+      error: String(err),
       time: new Date().toISOString(),
     });
   });
-
-  return response;
 });
 
+server.listen(HTTP_PORT, HOST, () => {
+  console.log("[listen]", {
+    host: HOST,
+    port: HTTP_PORT,
+    isolate: ISOLATE_ID,
+    deployment: DEPLOYMENT_ID,
+    time: new Date().toISOString(),
+  });
+});
 
