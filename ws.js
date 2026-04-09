@@ -417,6 +417,26 @@ function normalizeMessage(data) {
   return data;
 }
 
+function toNodeStyleMessage(data) {
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (Buffer.isBuffer(data)) {
+    return data;
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data);
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+  }
+
+  return data;
+}
+
 function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
   const listeners = {
     connection: new Set(),
@@ -447,23 +467,19 @@ function createDenoWSServer({ port, host = '0.0.0.0', expectedPath }) {
     });
 
       socket.binaryType = "arraybuffer";
-      socket.addEventListener("message", async (e) => {
+    socket.addEventListener("message", async (e) => {
         let msg = e.data;
 
         if (msg instanceof Blob) {
-          msg = new Uint8Array(await msg.arrayBuffer());
+          msg = Buffer.from(await msg.arrayBuffer());
         } else {
-          msg = normalizeMessage(msg);
+          msg = toNodeStyleMessage(msg);
         }
 
         const isBinary = typeof msg !== "string";
 
         for (const fn of [...wsListeners.message]) {
-          try {
-            fn(msg, isBinary);
-          } catch (err) {
-            console.error("[ws message handler error]", err);
-          }
+          fn(msg, isBinary);
         }
       });
 
