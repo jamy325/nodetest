@@ -1,12 +1,10 @@
 FROM ubuntu:24.04
 
 RUN apt-get update \
-    && apt-get install -y unzip curl bash nginx ca-certificates \
-    python3 python3-venv python3-pip \
+    && apt-get install -y unzip curl bash ca-certificates \
     vim-tiny \
     net-tools iproute2 iputils-ping dnsutils \
     procps lsof less \
-    screen ffmpeg \
     nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
