@@ -1,21 +1,14 @@
-FROM ubuntu:24.04
-
-RUN apt-get update \
-    && apt-get install -y unzip curl bash ca-certificates \
-    vim-tiny \
-    net-tools iproute2 iputils-ping dnsutils \
-    procps lsof less \
-    nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
+FROM node:20-alpine3.20
 
 WORKDIR /app
 
-COPY package.json /app/
-RUN npm install 
+RUN apk add --no-cache bash openssl curl
 
-COPY index.js ws.js run.sh /app/
-RUN chmod +x /app/run.sh
+COPY package.json ./
+RUN npm install
 
+COPY index.js ws.js run.sh ./
+RUN chmod +x run.sh
 
 EXPOSE 3000
 
